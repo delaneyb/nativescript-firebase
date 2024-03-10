@@ -15,7 +15,7 @@ Object.defineProperty(fb, 'functions', {
 
 		return new Functions(app);
 	},
-	writable: false,
+	writable: true,
 });
 /**
   Firebase Functions Region - Region for which to run HttpsCallable method
@@ -141,6 +141,8 @@ function toHttpsError(error: any) {
 export class Functions implements IFunctions {
 	_native: com.google.firebase.functions.FirebaseFunctions;
 	_app: FirebaseApp;
+	/** Emulator configuration to use, applied regardless of region used */
+	_emulator?: { host: string, port: number }
 
 	constructor(app?: FirebaseApp) {
 		if (app?.native) {
@@ -156,7 +158,15 @@ export class Functions implements IFunctions {
 		}
 	}
 
-	httpsCallable(name: string, options?: HttpsCallableOptions): HttpsCallable {
+	httpsCallable(name: string, options?: HttpsCallableOptions | string): HttpsCallable {
+		// WARN: We must always get a new instance of the native functions even if region is not
+		// specified as it may have been previously in which case we would otherwise try invoke the
+		// called function in the previously specified region rather than the default us-central1
+		const region = typeof options === 'string' ? options : "us-central1"
+		this._native = com.google.firebase.functions.FirebaseFunctions.getInstance(region)
+		if (this._emulator)
+			this.useEmulator(this._emulator.host, this._emulator.port)
+		
 		const callable = this.native.getHttpsCallable(name);
 		if (typeof options?.timeout === 'number') {
 			callable.setTimeout(options.timeout, java.util.concurrent.TimeUnit.SECONDS);
@@ -180,7 +190,8 @@ export class Functions implements IFunctions {
 	}
 
 	useEmulator(host: string, port: number) {
-		this.native.useEmulator(host === 'localhost' || host === '127.0.0.1' ? '10.0.2.2' : host, port);
+		this._emulator = { host, port }
+		this.native.useEmulator(host, port);
 	}
 
 	get native() {

@@ -35,7 +35,7 @@ export enum HttpsErrorCode {
 export interface IFunctions {
 	app: FirebaseApp;
 
-	httpsCallable(name: string, options?: HttpsCallableOptions): HttpsCallable;
+	httpsCallable(name: string, options?: HttpsCallableOptions | string): HttpsCallable;
 
 	useEmulator(host: string, port: number);
 }

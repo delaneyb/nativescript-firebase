@@ -34,6 +34,10 @@ declare function serialize(data: any, wrapPrimitives?: boolean): any;
 
 declare function deserialize(data: any): any;
 
+declare const enumerable: typeof import('./utils').enumerable
+
+declare const nonenumerable: typeof import('./utils').nonenumerable
+
 declare class FirebaseOptions implements IFirebaseOptions {
 	readonly ios: any;
 	readonly android: any;

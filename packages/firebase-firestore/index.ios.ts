@@ -6,7 +6,7 @@ import { WhereFilterOp, ICollectionReference, IDocumentReference, IFieldPath, IF
 
 const main_queue = dispatch_get_current_queue();
 
-import { firebase, FirebaseApp, FirebaseError, serialize } from '@nativescript/firebase-core';
+import { firebase, FirebaseApp, FirebaseError, serialize, nonenumerable } from '@nativescript/firebase-core';
 
 import '@nativescript/core';
 
@@ -26,7 +26,7 @@ Object.defineProperty(fb, 'firestore', {
 
 		return new Firestore(app);
 	},
-	writable: false,
+	writable: true,
 });
 
 function deserializeField(value) {
@@ -35,11 +35,11 @@ function deserializeField(value) {
 	}
 
 	if (value instanceof FIRTimestamp) {
-		return Timestamp.fromNative(value);
+		return value.dateValue();  // was Timestamp.fromNative(value);
 	}
 
 	if (value instanceof FIRGeoPoint) {
-		return GeoPoint.fromNative(value);
+		return GeoPoint.fromNative(value).toJSON();  // was GeoPoint.fromNative(value)
 	}
 
 	if (value instanceof FIRFieldPath) {
@@ -982,11 +982,11 @@ export class FieldValue implements IFieldValue {
 		return null;
 	}
 
-	static arrayRemove(elements: any[]): FieldValue {
+	static arrayRemove(...elements: any[]): FieldValue {
 		return FieldValue.fromNative(FIRFieldValue.fieldValueForArrayRemove(elements.map((element) => element?.native || element)));
 	}
 
-	static arrayUnion(elements: any[]): FieldValue {
+	static arrayUnion(...elements: any[]): FieldValue {
 		return FieldValue.fromNative(FIRFieldValue.fieldValueForArrayUnion(elements.map((element) => element?.native || element)));
 	}
 
@@ -1016,6 +1016,7 @@ export class FieldValue implements IFieldValue {
 }
 
 export class GeoPoint implements IGeoPoint {
+	@nonenumerable
 	_native: FIRGeoPoint;
 
 	constructor(latitude: number, longitude: number, native: boolean = false) {
@@ -1032,6 +1033,23 @@ export class GeoPoint implements IGeoPoint {
 		}
 		return null;
 	}
+
+	// TODO: we would prefer to be able to use GeoPoint in Yellowbox without needing to always turn
+	// it into a plain json object with toJSON (which ensures VuexFirestoreBinder doesn't try
+	// erroneously reassign the latitude/longitude fields when it see's they have changed between
+	// snapshots - see adjustment to deserialiseField), but for this to be possible we need to make
+	// latitude and longitude @enumerable AND we need to modify the typings so it is not a readonly
+	// field and then add a setter which replaces _native with a NEW GeoPoint with the existing
+	// longitude plus new latitude. In doing this it would be sensible to introduce use of
+	// @enumerable and @nonenumerable across the entire codebase. This would likely be easiest by
+	// writing a script to find all files with _native fields, ensure they have an existing import
+	// from fierbase-core at the top of the file or create one and add { enumerable, nonenumerable
+	// }, and then regex insert @enumerable and @nonenumerable decorators before all _native
+	// properties as necessary and submit this as one PR
+	//
+	// Note the use of enumerable and nonenumerable properties is still not ideal. These properties
+	// do not appear when iterating contents of an object with Object.keys() as they are on the
+	// prototype not the class instance itself
 
 	get latitude(): number {
 		return this.native.latitude;
@@ -1058,6 +1076,7 @@ export class GeoPoint implements IGeoPoint {
 }
 
 export class Timestamp implements ITimestamp {
+	@nonenumerable
 	_native: FIRTimestamp;
 
 	constructor(seconds: number, nanoseconds: number, native = false) {
@@ -1474,6 +1493,14 @@ export class Firestore implements IFirestore {
 
 	get ios() {
 		return this.native;
+	}
+
+	get FieldValue() {
+		return FieldValue;
+	}
+
+	get FieldPath() {
+		return FieldPath;
 	}
 
 	get app(): FirebaseApp {

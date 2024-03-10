@@ -15,7 +15,7 @@ Object.defineProperty(fb, 'functions', {
 
 		return new Functions(app);
 	},
-	writable: false,
+	writable: true,
 });
 /**
   Firebase Functions Region - Region for which to run HttpsCallable method
@@ -135,6 +135,8 @@ function toHttpsError(error: NSError) {
 export class Functions implements IFunctions {
 	_native: FIRFunctions;
 	_app: FirebaseApp;
+	/** Emulator configuration to use, applied regardless of region used */
+	_emulator?: { host: string, port: number }
 
 	constructor(app?: FirebaseApp) {
 		if (app?.native) {
@@ -164,7 +166,15 @@ export class Functions implements IFunctions {
 		}
 	}
 
-	httpsCallable(name: string, options?: HttpsCallableOptions): HttpsCallable {
+	httpsCallable(name: string, options?: HttpsCallableOptions | string): HttpsCallable {
+		// WARN: We must always get a new instance of the native functions even if region is not
+		// specified as it may have been previously in which case we would otherwise try invoke the
+		// called function in the previously specified region rather than the default us-central1
+		const region = typeof options === 'string' ? options : "us-central1"
+		this._native = FIRFunctions.functionsForRegion(region)
+		if (this._emulator)
+			this.useEmulator(this._emulator.host, this._emulator.port)
+		
 		const callable = this.native.HTTPSCallableWithName(name);
 		if (typeof options?.timeout === 'number') {
 			callable.timeoutInterval = options.timeout;
@@ -193,6 +203,7 @@ export class Functions implements IFunctions {
 	}
 
 	useEmulator(host: string, port: number) {
+		this._emulator = { host, port }
 		this.native.useEmulatorWithHostPort(host, port);
 	}
 

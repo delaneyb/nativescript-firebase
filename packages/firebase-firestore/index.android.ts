@@ -4,7 +4,7 @@ export { GetOptions, DocumentChangeType };
 
 import { WhereFilterOp, ICollectionReference, IDocumentReference, IFieldPath, IFieldValue, IGeoPoint, IQuery, ITimestamp, IWriteBatch, SetOptions, DocumentData, IDocumentSnapshot, IQuerySnapshot, SnapshotListenOptions, ISnapshotMetadata, IDocumentChange, IQueryDocumentSnapshot, ITransaction, ISettings, IFirestore, IBytes, DocumentFieldType } from '.';
 
-import { firebase, FirebaseApp, FirebaseError } from '@nativescript/firebase-core';
+import { firebase, FirebaseApp, FirebaseError, nonenumerable } from '@nativescript/firebase-core';
 
 let defaultFirestore: Firestore;
 
@@ -20,7 +20,7 @@ Object.defineProperty(fb, 'firestore', {
 
 		return new Firestore(app);
 	},
-	writable: false,
+	writable: true,
 });
 
 function deserializeField(value) {
@@ -53,11 +53,11 @@ function deserializeField(value) {
 	}
 
 	if (value instanceof com.google.firebase.Timestamp) {
-		return Timestamp.fromNative(value);
+		return Timestamp.fromNative(value).toDate(); // Was Timestamp.fromNative(value);
 	}
 
 	if (value instanceof com.google.firebase.firestore.GeoPoint) {
-		return GeoPoint.fromNative(value);
+		return GeoPoint.fromNative(value).toJSON();  // Was GeoPoint.fromNative(value)
 	}
 
 	if (value instanceof com.google.firebase.firestore.FieldPath) {
@@ -1117,11 +1117,11 @@ export class FieldValue implements IFieldValue {
 		return null;
 	}
 
-	static arrayRemove(elements: any[]): FieldValue {
+	static arrayRemove(...elements: any[]): FieldValue {
 		return FieldValue.fromNative(com.google.firebase.firestore.FieldValue.arrayRemove(elements.map((element) => element?.native || serializeItems(element))));
 	}
 
-	static arrayUnion(elements: any[]): FieldValue {
+	static arrayUnion(...elements: any[]): FieldValue {
 		return FieldValue.fromNative(com.google.firebase.firestore.FieldValue.arrayUnion(elements.map((element) => element?.native || serializeItems(element))));
 	}
 
@@ -1147,6 +1147,7 @@ export class FieldValue implements IFieldValue {
 }
 
 export class GeoPoint implements IGeoPoint {
+	@nonenumerable
 	_native: com.google.firebase.firestore.GeoPoint;
 
 	constructor(latitude: number, longitude: number, native: boolean = false) {
@@ -1189,6 +1190,7 @@ export class GeoPoint implements IGeoPoint {
 }
 
 export class Timestamp implements ITimestamp {
+	@nonenumerable
 	_native: com.google.firebase.Timestamp;
 
 	constructor(seconds: number, nanoseconds: number, native = false) {
@@ -1667,6 +1669,14 @@ export class Firestore implements IFirestore {
 
 	get android() {
 		return this.native;
+	}
+
+	get FieldValue() {
+		return FieldValue;
+	}
+
+	get FieldPath() {
+		return FieldPath;
 	}
 
 	get app(): FirebaseApp {

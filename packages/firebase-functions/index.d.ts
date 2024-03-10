@@ -12,7 +12,7 @@ export declare class HttpsError extends Error {
 export declare class Functions implements IFunctions {
 	constructor(app?: FirebaseApp);
 
-	httpsCallable(name: string, options?: HttpsCallableOptions): HttpsCallable;
+	httpsCallable(name: string, options?: HttpsCallableOptions | string): HttpsCallable;
 
 	useEmulator(host: string, port: number);
 

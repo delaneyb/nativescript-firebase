@@ -213,3 +213,50 @@ export function deserialize(data: any): any {
 		return store;
 	}
 }
+
+/**
+ * Decorator for enumerable properties e.g. we may use a getter to expose a field from inside a
+ * native object as a class member, but the user of the class expects that property to appear when
+ * iterating over an instance of the class
+ */
+export const enumerable: {
+	(target: any, name: string): void;
+	(target: any, name: string, desc: PropertyDescriptor): PropertyDescriptor;
+} = (target: any, name: string, desc?: any) => {
+	if (desc) {
+		desc.enumerable = true;
+		return desc;
+	}
+	Object.defineProperty(target, name, {
+		set(value) {
+			Object.defineProperty(this, name, {
+				value, enumerable: true, writable: true, configurable: true,
+			});
+		},
+		enumerable: true,
+		configurable: true,
+	});
+};
+
+/**
+ * Decorator for nonenumerable properties e.g. users of our wrapper classes e.g. GeoPoint with a
+ * _native property dont expect it to appear when iterating over properties on the class instance
+ */
+export const nonenumerable: {
+	(target: any, name: string): void;
+	(target: any, name: string, desc: PropertyDescriptor): PropertyDescriptor;
+} = (target: any, name: string, desc?: any) => {
+	if (desc) {
+		desc.enumerable = false;
+		return desc;
+	}
+	Object.defineProperty(target, name, {
+		set(value) {
+			Object.defineProperty(this, name, {
+				value, writable: true, configurable: true,
+			});
+		},
+		configurable: true,
+	});
+};
+

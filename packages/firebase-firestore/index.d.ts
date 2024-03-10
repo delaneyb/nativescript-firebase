@@ -421,15 +421,15 @@ export declare class FieldPath implements IFieldPath {
 }
 
 export declare class FieldValue implements IFieldValue {
-	static arrayRemove(elements: any[]): FieldValue;
+	static arrayRemove(...elements: any[]): FieldValue;
 
-	static arrayUnion(elements: any[]): FieldValue;
+	static arrayUnion(...elements: any[]): FieldValue;
 
-	static delete(): FieldValue;
+	static delete(): any;
 
 	static increment(n: number): FieldValue;
 
-	static serverTimestamp(): FieldValue;
+	static serverTimestamp(): any;
 
 	readonly android: any;
 	readonly ios: any;
@@ -439,9 +439,9 @@ export declare class FieldValue implements IFieldValue {
 export class GeoPoint implements IGeoPoint {
 	constructor(latitude: number, longitude: number);
 
-	readonly latitude: number;
+	latitude: number;
 
-	readonly longitude: number;
+	longitude: number;
 
 	readonly android: any;
 	readonly ios: any;
@@ -535,6 +535,9 @@ export declare class Firestore implements IFirestore {
 	readonly android: any;
 	readonly ios: any;
 	readonly native: any;
+
+	readonly FieldValue: typeof FieldValue
+	readonly FieldPath: typeof FieldPath
 
 	readonly app: FirebaseApp;
 }
